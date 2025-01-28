@@ -1,0 +1,145 @@
+import React, { useState, useCallback } from 'react';
+
+const ExtremeTicTacToe = () => {
+  const initialBoard = Array(9).fill().map(() => Array(9).fill(null));
+  const [board, setBoard] = useState(initialBoard);
+  const [mainBoard, setMainBoard] = useState(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState(true);
+  const [lastMove, setLastMove] = useState(null);
+  const [gameOver, setGameOver] = useState(false);
+
+  const calculateWinner = useCallback((squares) => {
+    const lines = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+
+    for (let [a, b, c] of lines) {
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+        return squares[a];
+      }
+    }
+    return null;
+  }, []);
+
+  const isBoardFull = (squares) => {
+    return squares.every(square => square !== null);
+  };
+
+  const handleClick = (mainIndex, subIndex) => {
+    if (gameOver) return;
+    if (lastMove !== null && lastMove !== mainIndex && mainBoard[mainIndex] === null) return;
+    if (mainBoard[mainIndex] !== null) return;
+    if (board[mainIndex][subIndex]) return;
+
+    const newBoard = [...board];
+    newBoard[mainIndex] = [...board[mainIndex]];
+    newBoard[mainIndex][subIndex] = xIsNext ? 'X' : 'O';
+    setBoard(newBoard);
+
+    const subBoardWinner = calculateWinner(newBoard[mainIndex]);
+    if (subBoardWinner || isBoardFull(newBoard[mainIndex])) {
+      const newMainBoard = [...mainBoard];
+      newMainBoard[mainIndex] = subBoardWinner || 'T';
+      setMainBoard(newMainBoard);
+
+      const mainBoardWinner = calculateWinner(newMainBoard);
+      if (mainBoardWinner || isBoardFull(newMainBoard)) {
+        setGameOver(true);
+      }
+    }
+
+    setLastMove(subIndex);
+    setXIsNext(!xIsNext);
+  };
+
+  const Square = ({ value, onClick, highlight }) => (
+    <button
+      className={`w-8 h-8 border border-purple-900 flex items-center justify-center text-lg font-bold
+        ${highlight ? 'bg-purple-200' : 'bg-black'}
+        ${value === 'X' ? 'text-green-400' : 'text-purple-400'}`}
+      onClick={onClick}
+    >
+      {value}
+    </button>
+  );
+
+  const SubBoard = ({ boardIndex, highlight }) => (
+    <div className="grid grid-cols-3 gap-1 bg-purple-900 p-1">
+      {board[boardIndex].map((value, index) => (
+        <Square
+          key={index}
+          value={value}
+          onClick={() => handleClick(boardIndex, index)}
+          highlight={highlight}
+        />
+      ))}
+    </div>
+  );
+
+  const getStatus = () => {
+    const winner = calculateWinner(mainBoard);
+    if (winner) return `Winner: ${winner}`;
+    if (isBoardFull(mainBoard)) return "Game Over: Draw";
+    return `Next player: ${xIsNext ? 'X' : 'O'}`;
+  };
+
+  const getNextBoardMessage = () => {
+    if (lastMove === null) return "Play in any board";
+    if (mainBoard[lastMove] !== null) return "Play in any available board";
+    return `Play in board ${lastMove + 1}`;
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4 p-4 bg-black">
+      <h1 className="text-2xl font-bold text-purple-400">Extreme Tic Tac Toe</h1>
+      
+      <div className="text-lg text-green-400 mb-2">{getStatus()}</div>
+      <div className="text-sm text-purple-300 mb-4">{getNextBoardMessage()}</div>
+
+      <div className="grid grid-cols-3 gap-2 bg-purple-800 p-2">
+        {Array(9).fill().map((_, index) => (
+          <div key={index} className="relative">
+            {mainBoard[index] && (
+              <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-10">
+                <span className={`text-4xl font-bold ${mainBoard[index] === 'X' ? 'text-green-400' : 'text-purple-400'}`}>
+                  {mainBoard[index]}
+                </span>
+              </div>
+            )}
+            <SubBoard
+              boardIndex={index}
+              highlight={lastMove === null || lastMove === index || mainBoard[lastMove] !== null}
+            />
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => {
+          setBoard(initialBoard);
+          setMainBoard(Array(9).fill(null));
+          setXIsNext(true);
+          setLastMove(null);
+          setGameOver(false);
+        }}
+        className="mt-4 px-4 py-2 bg-purple-600 text-black font-bold rounded hover:bg-purple-500"
+      >
+        Reset Game
+      </button>
+
+      <div className="text-purple-300 text-sm mt-4">
+        <h2 className="font-bold mb-2 text-green-400">Rules:</h2>
+        <ul className="list-disc pl-4">
+          <li>Win small boards to claim squares on the big board</li>
+          <li>You must play in the board corresponding to your opponent's last move</li>
+          <li>If that board is won or full, you can play in any available board</li>
+          <li>Win three small boards in a row to win the game</li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default ExtremeTicTacToe;
